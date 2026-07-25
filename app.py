@@ -185,7 +185,7 @@ st.markdown("""
 # ── Backend setup ──────────────────────────────────────────────────
 API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY)
-GEN_MODEL = "gemini-2.5-flash-lite"
+GEN_MODEL = "gemini-3.5-flash-lite"
 EMBED_MODEL = "gemini-embedding-001"
 
 CHUNK_SIZE = 500
