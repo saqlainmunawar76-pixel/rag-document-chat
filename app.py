@@ -185,7 +185,7 @@ st.markdown("""
 # ── Backend setup ──────────────────────────────────────────────────
 API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY)
-GEN_MODEL = "gemini-2.5-flash"
+GEN_MODEL = "gemini-2.5-flash-lite"
 EMBED_MODEL = "gemini-embedding-001"
 
 CHUNK_SIZE = 500
@@ -387,7 +387,7 @@ if uploaded_file:
 
     col1, col2 = st.columns(2)
     with col1:
-        compare_mode = st.toggle("Compare with plain prompt", value=True)
+        compare_mode = st.toggle("Compare with plain prompt", value=False)
     with col2:
         show_sources = st.toggle("Show retrieved sources", value=False)
 
