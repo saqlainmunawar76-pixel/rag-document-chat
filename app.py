@@ -72,7 +72,7 @@ st.markdown("""
 API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY)
 GEN_MODEL = "gemini-2.5-flash"
-EMBED_MODEL = "text-embedding-004"
+EMBED_MODEL = "gemini-embedding-001"
 
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
