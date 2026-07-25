@@ -249,7 +249,7 @@ def answer_with_rag(question: str, chunks, chunk_embeddings):
         contents=full_prompt,
         config=types.GenerateContentConfig(
             system_instruction=RAG_SYSTEM_PROMPT,
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            thinking_config=types.ThinkingConfig(thinking_level="low"),
         ),
     )
     return response.text, relevant_chunks
@@ -260,7 +260,7 @@ def answer_plain(question: str) -> str:
         model=GEN_MODEL,
         contents=question,
         config=types.GenerateContentConfig(
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            thinking_config=types.ThinkingConfig(thinking_level="low"),
         ),
     )
     return response.text
