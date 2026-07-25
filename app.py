@@ -394,28 +394,36 @@ if uploaded_file:
     question = st.text_input("Ask a question about the document:", placeholder="e.g. What skills are listed?")
 
     if st.button("Ask", type="primary") and question:
-        with st.spinner("Retrieving relevant sections and answering..."):
-            rag_answer, sources = answer_with_rag(question, st.session_state.chunks, st.session_state.chunk_embeddings)
+        try:
+            with st.spinner("Retrieving relevant sections and answering..."):
+                rag_answer, sources = answer_with_rag(question, st.session_state.chunks, st.session_state.chunk_embeddings)
+        except Exception as e:
+            st.error(f"⚠️ Could not get the grounded answer: {e}")
+            rag_answer, sources = None, []
+
+        # Show the RAG answer immediately, before attempting the plain comparison call
+        if rag_answer:
+            st.markdown('<p class="section-label">📄 Grounded Answer (from your document)</p>', unsafe_allow_html=True)
+            st.markdown(f'<div class="answer-box">{rag_answer}</div>', unsafe_allow_html=True)
+
+            if show_sources:
+                st.markdown('<div class="source-box"><b>Retrieved chunks used:</b><br><br>' + "<br><br>".join(sources) + '</div>', unsafe_allow_html=True)
 
         plain_answer = None
-        if compare_mode:
-            with st.spinner("Getting plain prompt answer for comparison..."):
-                plain_answer = answer_plain(question)
+        if compare_mode and rag_answer:
+            try:
+                with st.spinner("Getting plain prompt answer for comparison..."):
+                    plain_answer = answer_plain(question)
+                st.markdown('<p class="section-label">🧠 Plain Prompt Answer (model\'s own knowledge, no document)</p>', unsafe_allow_html=True)
+                st.markdown(f'<div class="plain-answer-box">{plain_answer}</div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.warning(f"⚠️ Plain prompt comparison failed (this doesn't affect the grounded answer above): {e}")
 
-        st.session_state.history.append({
-            "question": question,
-            "rag_answer": rag_answer,
-            "plain_answer": plain_answer,
-        })
-
-        st.markdown('<p class="section-label">📄 Grounded Answer (from your document)</p>', unsafe_allow_html=True)
-        st.markdown(f'<div class="answer-box">{rag_answer}</div>', unsafe_allow_html=True)
-
-        if show_sources:
-            st.markdown('<div class="source-box"><b>Retrieved chunks used:</b><br><br>' + "<br><br>".join(sources) + '</div>', unsafe_allow_html=True)
-
-        if compare_mode:
-            st.markdown('<p class="section-label">🧠 Plain Prompt Answer (model\'s own knowledge, no document)</p>', unsafe_allow_html=True)
-            st.markdown(f'<div class="plain-answer-box">{plain_answer}</div>', unsafe_allow_html=True)
+        if rag_answer:
+            st.session_state.history.append({
+                "question": question,
+                "rag_answer": rag_answer,
+                "plain_answer": plain_answer,
+            })
 else:
     st.info("👆 Upload a PDF to get started.")
