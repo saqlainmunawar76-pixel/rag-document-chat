@@ -5,6 +5,7 @@ Generative AI & Prompt Engineering Internship — NeuroFive Solutions
 A polished Streamlit app that lets you upload any PDF (resume, class notes,
 report) and ask questions grounded ONLY in that document's actual content,
 with an optional side-by-side comparison against a plain (non-grounded) prompt.
+Includes Q&A history and a downloadable results file.
 """
 
 import streamlit as st
@@ -13,6 +14,7 @@ from pypdf import PdfReader
 from google import genai
 from google.genai import types
 import io
+from datetime import datetime
 
 # ── Page config ────────────────────────────────────────────────────
 st.set_page_config(
@@ -36,33 +38,62 @@ st.markdown("""
         margin-bottom: 0;
     }
     .subtitle {
-        color: #9AA7C7;
+        color: #9AA7C7 !important;
         font-size: 0.95rem;
         margin-top: 0;
         margin-bottom: 1.5rem;
     }
     .source-box {
-        background-color: #161F3D;
+        background-color: #1B2440;
         border: 1px solid #2A3760;
         border-radius: 10px;
-        padding: 12px 16px;
+        padding: 14px 18px;
         font-size: 0.85rem;
-        color: #9AA7C7;
+        color: #C7D0E8 !important;
         margin-top: 8px;
+        line-height: 1.6;
     }
     .answer-box {
-        background-color: #161F3D;
-        border-left: 3px solid #5EEAD4;
+        background-color: #16233F;
+        border-left: 4px solid #5EEAD4;
         border-radius: 8px;
-        padding: 16px 20px;
-        margin-bottom: 8px;
+        padding: 18px 22px;
+        margin-bottom: 12px;
+        color: #F3F6FC !important;
+        font-size: 1rem;
+        line-height: 1.65;
     }
     .plain-answer-box {
-        background-color: #161F3D;
-        border-left: 3px solid #F5A623;
+        background-color: #201B33;
+        border-left: 4px solid #F5A623;
         border-radius: 8px;
-        padding: 16px 20px;
-        margin-bottom: 8px;
+        padding: 18px 22px;
+        margin-bottom: 12px;
+        color: #F3F6FC !important;
+        font-size: 1rem;
+        line-height: 1.65;
+    }
+    .answer-box b, .plain-answer-box b, .answer-box strong, .plain-answer-box strong {
+        color: #5EEAD4 !important;
+    }
+    .section-label {
+        color: #E8ECF4 !important;
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin-top: 6px;
+        margin-bottom: 6px;
+    }
+    .history-q {
+        color: #7DD3FC !important;
+        font-weight: 600;
+    }
+    .history-a {
+        color: #C7D0E8 !important;
+        font-size: 0.9rem;
+    }
+    .stTextInput input {
+        color: #F3F6FC !important;
+        background-color: #161F3D !important;
     }
     footer {visibility: hidden;}
 </style>
@@ -145,10 +176,33 @@ def answer_plain(question: str) -> str:
     return response.text
 
 
-# ── UI ─────────────────────────────────────────────────────────────
-st.markdown('<p class="main-title">📄 Chat With Your Document</p>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Upload a resume, report, or notes — ask questions grounded in the actual content. Built on Retrieval-Augmented Generation (RAG).</p>', unsafe_allow_html=True)
+def build_history_export(history: list[dict]) -> str:
+    lines = [
+        "# Chat With Your Document — Q&A Results",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"Document: {st.session_state.get('filename', 'N/A')}",
+        "",
+        "---",
+        "",
+    ]
+    for i, entry in enumerate(history, 1):
+        lines.append(f"## Question {i}: {entry['question']}")
+        lines.append("")
+        lines.append(f"**Grounded (RAG) Answer:**  \n{entry['rag_answer']}")
+        lines.append("")
+        if entry.get("plain_answer"):
+            lines.append(f"**Plain Prompt Answer:**  \n{entry['plain_answer']}")
+            lines.append("")
+        lines.append("---")
+        lines.append("")
+    return "\n".join(lines)
 
+
+# ── Session state init ────────────────────────────────────────────
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# ── Sidebar ────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### ⚙️ How it works")
     st.markdown("""
@@ -158,7 +212,37 @@ with st.sidebar:
     4. The model answers **only** from those chunks
     """)
     st.markdown("---")
+
+    st.markdown("### 🕘 Q&A History")
+    if st.session_state.history:
+        for i, entry in enumerate(reversed(st.session_state.history), 1):
+            with st.expander(f"Q{len(st.session_state.history) - i + 1}: {entry['question'][:40]}..."):
+                st.markdown(f'<p class="history-q">Q: {entry["question"]}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="history-a">📄 {entry["rag_answer"]}</p>', unsafe_allow_html=True)
+                if entry.get("plain_answer"):
+                    st.markdown(f'<p class="history-a">🧠 {entry["plain_answer"]}</p>', unsafe_allow_html=True)
+
+        st.markdown("---")
+        export_text = build_history_export(st.session_state.history)
+        st.download_button(
+            "⬇️ Download all results (.md)",
+            data=export_text,
+            file_name="rag_qa_results.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+        if st.button("🗑️ Clear history", use_container_width=True):
+            st.session_state.history = []
+            st.rerun()
+    else:
+        st.caption("No questions asked yet.")
+
+    st.markdown("---")
     st.markdown("Built for the **Generative AI & Prompt Engineering Internship** @ NeuroFive Solutions")
+
+# ── Main content ───────────────────────────────────────────────────
+st.markdown('<p class="main-title">📄 Chat With Your Document</p>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Upload a resume, report, or notes — ask questions grounded in the actual content. Built on Retrieval-Augmented Generation (RAG).</p>', unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("Upload a PDF (resume, class notes, or report — 3-10 pages)", type="pdf")
 
@@ -173,8 +257,11 @@ if uploaded_file:
             st.session_state.filename = uploaded_file.name
         st.success(f"✅ Indexed {len(st.session_state.chunks)} chunks from **{uploaded_file.name}**")
 
-    compare_mode = st.toggle("Also show a plain prompt answer (no document) for comparison", value=True)
-    show_sources = st.toggle("Show retrieved source chunks", value=False)
+    col1, col2 = st.columns(2)
+    with col1:
+        compare_mode = st.toggle("Compare with plain prompt", value=True)
+    with col2:
+        show_sources = st.toggle("Show retrieved sources", value=False)
 
     question = st.text_input("Ask a question about the document:", placeholder="e.g. What skills are listed?")
 
@@ -182,16 +269,25 @@ if uploaded_file:
         with st.spinner("Retrieving relevant sections and answering..."):
             rag_answer, sources = answer_with_rag(question, st.session_state.chunks, st.session_state.chunk_embeddings)
 
-        st.markdown("#### 📄 Grounded Answer (from your document)")
-        st.markdown(f'<div class="answer-box">{rag_answer}</div>', unsafe_allow_html=True)
-
-        if show_sources:
-            st.markdown('<div class="source-box"><b>Retrieved chunks used:</b><br>' + "<br><br>".join(sources) + '</div>', unsafe_allow_html=True)
-
+        plain_answer = None
         if compare_mode:
             with st.spinner("Getting plain prompt answer for comparison..."):
                 plain_answer = answer_plain(question)
-            st.markdown("#### 🧠 Plain Prompt Answer (model's own knowledge, no document)")
+
+        st.session_state.history.append({
+            "question": question,
+            "rag_answer": rag_answer,
+            "plain_answer": plain_answer,
+        })
+
+        st.markdown('<p class="section-label">📄 Grounded Answer (from your document)</p>', unsafe_allow_html=True)
+        st.markdown(f'<div class="answer-box">{rag_answer}</div>', unsafe_allow_html=True)
+
+        if show_sources:
+            st.markdown('<div class="source-box"><b>Retrieved chunks used:</b><br><br>' + "<br><br>".join(sources) + '</div>', unsafe_allow_html=True)
+
+        if compare_mode:
+            st.markdown('<p class="section-label">🧠 Plain Prompt Answer (model\'s own knowledge, no document)</p>', unsafe_allow_html=True)
             st.markdown(f'<div class="plain-answer-box">{plain_answer}</div>', unsafe_allow_html=True)
 else:
     st.info("👆 Upload a PDF to get started.")
