@@ -94,7 +94,89 @@ st.markdown("""
     .stTextInput input {
         color: #F3F6FC !important;
         background-color: #161F3D !important;
+        border: 1px solid #2A3760 !important;
     }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0D1424 0%, #161F3D 100%) !important;
+        border-right: 1px solid #2A3760;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #E8ECF4 !important;
+    }
+    section[data-testid="stSidebar"] h3 {
+        color: #5EEAD4 !important;
+    }
+    section[data-testid="stSidebar"] hr {
+        border-color: #2A3760 !important;
+    }
+    section[data-testid="stSidebar"] .stCaption, 
+    section[data-testid="stSidebar"] small {
+        color: #7C89AC !important;
+    }
+
+    /* ── Expander (history items) ───────────────────────────── */
+    section[data-testid="stSidebar"] details {
+        background-color: #1B2440 !important;
+        border: 1px solid #2A3760 !important;
+        border-radius: 8px !important;
+    }
+    section[data-testid="stSidebar"] summary {
+        color: #E8ECF4 !important;
+    }
+
+    /* ── File uploader ───────────────────────────────────────── */
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: #161F3D !important;
+        border: 1.5px dashed #2A3760 !important;
+        border-radius: 12px !important;
+    }
+    [data-testid="stFileUploaderDropzone"] * {
+        color: #C7D0E8 !important;
+    }
+    [data-testid="stFileUploader"] section {
+        background-color: #161F3D !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
+        background-color: #1B2440 !important;
+        color: #F3F6FC !important;
+        border: 1px solid #2A3760 !important;
+    }
+
+    /* ── Uploaded file chip ─────────────────────────────────── */
+    [data-testid="stFileUploaderFile"] {
+        background-color: #1B2440 !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stFileUploaderFile"] * {
+        color: #F3F6FC !important;
+    }
+
+    /* ── Toggles / labels in main area ──────────────────────── */
+    .stApp label, .stApp p, .stApp span {
+        color: #E8ECF4;
+    }
+    [data-testid="stWidgetLabel"] p {
+        color: #C7D0E8 !important;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .stDownloadButton button, .stButton button[kind="secondary"] {
+        background-color: #1B2440 !important;
+        color: #F3F6FC !important;
+        border: 1px solid #2A3760 !important;
+    }
+
+    /* ── Success / info banners ─────────────────────────────── */
+    [data-testid="stAlert"] {
+        background-color: #16233F !important;
+        color: #F3F6FC !important;
+    }
+    [data-testid="stAlert"] * {
+        color: #F3F6FC !important;
+    }
+
     footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
