@@ -11,6 +11,7 @@ Includes Q&A history and a downloadable results file.
 import streamlit as st
 import numpy as np
 from pypdf import PdfReader
+from fpdf import FPDF
 from google import genai
 from google.genai import types
 import io
@@ -191,12 +192,19 @@ CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
 RAG_SYSTEM_PROMPT = """
-You are a document Q&A assistant. Answer the user's question using ONLY the 
-provided context below. Do not use any outside knowledge.
+You are a knowledgeable document Q&A assistant. Answer the user's question using 
+ONLY the provided context below. Do not use any outside knowledge.
 
-If the answer is not clearly present in the context, say exactly: 
-"I cannot find this in the document." Do not guess or make anything up.
-Be concise and direct.
+Guidelines:
+- Give a complete, well-structured answer — not just a one-line fragment. 
+  Explain with the relevant details actually present in the context.
+- If the context supports it, use 2-4 sentences or a short bullet list rather 
+  than a single terse sentence.
+- Quote or reference specific details from the context (names, numbers, dates) 
+  when they're relevant to the question.
+- If the answer is not clearly present in the context, say exactly: 
+  "I cannot find this in the document." Do not guess or make anything up.
+- Stay strictly grounded in the given context even while being thorough.
 """
 
 
@@ -258,26 +266,64 @@ def answer_plain(question: str) -> str:
     return response.text
 
 
-def build_history_export(history: list[dict]) -> str:
-    lines = [
-        "# Chat With Your Document — Q&A Results",
-        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"Document: {st.session_state.get('filename', 'N/A')}",
-        "",
-        "---",
-        "",
-    ]
+def build_history_pdf(history: list[dict]) -> bytes:
+    """Generate a clean, professional PDF of the full Q&A session."""
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=18)
+    pdf.add_page()
+
+    # Header
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.set_text_color(20, 30, 60)
+    pdf.cell(0, 12, "Chat With Your Document - Q&A Results", ln=True)
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True)
+    doc_name = st.session_state.get("filename", "N/A")
+    pdf.cell(0, 6, f"Document: {doc_name}", ln=True)
+    pdf.ln(4)
+    pdf.set_draw_color(200, 200, 200)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(6)
+
     for i, entry in enumerate(history, 1):
-        lines.append(f"## Question {i}: {entry['question']}")
-        lines.append("")
-        lines.append(f"**Grounded (RAG) Answer:**  \n{entry['rag_answer']}")
-        lines.append("")
+        # Question
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(20, 30, 60)
+        pdf.multi_cell(0, 7, f"Q{i}. {entry['question']}")
+        pdf.ln(1)
+
+        # RAG answer
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(30, 130, 110)
+        pdf.cell(0, 6, "Grounded Answer (from document):", ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(30, 30, 30)
+        pdf.multi_cell(0, 6, _clean_for_pdf(entry["rag_answer"]))
+        pdf.ln(2)
+
+        # Plain answer (if present)
         if entry.get("plain_answer"):
-            lines.append(f"**Plain Prompt Answer:**  \n{entry['plain_answer']}")
-            lines.append("")
-        lines.append("---")
-        lines.append("")
-    return "\n".join(lines)
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(180, 110, 30)
+            pdf.cell(0, 6, "Plain Prompt Answer (no document):", ln=True)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 30, 30)
+            pdf.multi_cell(0, 6, _clean_for_pdf(entry["plain_answer"]))
+            pdf.ln(2)
+
+        pdf.set_draw_color(220, 220, 220)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(5)
+
+    return bytes(pdf.output())
+
+
+def _clean_for_pdf(text: str) -> str:
+    """Strip markdown bold/asterisks and non-latin1 characters fpdf can't render."""
+    text = text.replace("**", "").replace("*", "-")
+    return text.encode("latin-1", "replace").decode("latin-1")
 
 
 # ── Session state init ────────────────────────────────────────────
@@ -305,12 +351,12 @@ with st.sidebar:
                     st.markdown(f'<p class="history-a">🧠 {entry["plain_answer"]}</p>', unsafe_allow_html=True)
 
         st.markdown("---")
-        export_text = build_history_export(st.session_state.history)
+        pdf_bytes = build_history_pdf(st.session_state.history)
         st.download_button(
-            "⬇️ Download all results (.md)",
-            data=export_text,
-            file_name="rag_qa_results.md",
-            mime="text/markdown",
+            "⬇️ Download results (PDF)",
+            data=pdf_bytes,
+            file_name="rag_qa_results.pdf",
+            mime="application/pdf",
             use_container_width=True,
         )
         if st.button("🗑️ Clear history", use_container_width=True):
