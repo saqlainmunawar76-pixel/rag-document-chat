@@ -4,7 +4,7 @@ A Retrieval-Augmented Generation (RAG) pipeline that lets you upload any PDF —
 
 Built for the **Generative AI & Prompt Engineering Internship** at [NeuroFive Solutions](https://neurofivesolutions.com).
 
-🔗 **Live demo:** [Insert your Streamlit app link here after deploying]
+🔗 **Live demo:** https://saqlain-rag-document-chat.streamlit.app
 
 ---
 
@@ -109,19 +109,19 @@ GEMINI_API_KEY = "your_key_here"
 
 ## Test Results & Observations
 
-*(Fill in after testing with your own document — resume, notes, or report)*
+Tested using a sample document on AI automation and RAG concepts. Five questions were asked directly against the app, with "Compare with plain prompt" enabled to see both answers side by side.
 
-| # | Question | RAG Answer | Plain Prompt Answer | Hallucination Flagged? |
-|---|----------|------------|----------------------|--------------------------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
+| # | Question | RAG Answer (grounded) | Plain Prompt Answer (no document) | Hallucination Flagged? |
+|---|----------|------------------------|-------------------------------------|--------------------------|
+| 1 | What is Retrieval-Augmented Generation (RAG)? | "RAG is a process that combines document retrieval with large language models." (short, matches document's exact definition) | Gave a full generic explanation with an "open-book exam" analogy, a 4-step breakdown, and use cases — accurate about RAG in general, but not sourced from *this* document | No — both answers were factually correct; the plain answer just wasn't grounded in the specific document |
+| 2 | What are embeddings? | "Embeddings are used to convert text into vectors. They are stored in a vector database to enable semantic search." (matches document's exact phrasing) | Gave a long generic explanation with a "concept space" analogy and multiple embedding types — correct in general, but far more generic than what's actually in the document | No — no false claims, but the plain answer diverged from the document's specific framing |
+| 3 | How does AI automation work? | "AI automation works by connecting various tools to automate workflows. Specifically, it integrates: n8n, APIs, Large Language Models (LLMs)." (correctly pulled the specific tools named in the document) | Gave a generic 5-step AI automation framework (data ingestion, perception, decision-making, action, feedback loop) with no mention of n8n or the document's specific integrations | **Yes, partially** — the plain answer's 5-step framework is not hallucinated as false, but it invents a structure never mentioned in the document and omits the specific tools (n8n, APIs) that were the actual answer |
+| 4 | What is Retrieval-Augmented Generation (RAG)? *(repeated)* | Same short, document-grounded answer returned consistently | Plain answer varied in wording/structure across repeat runs (different analogies each time) | No |
+| 5 | What are embeddings? *(repeated)* | Same short, document-grounded answer returned consistently | Plain answer again varied in structure and examples used | No |
 
 ### Summary: How grounding changed answer quality
 
-*(Write 3-4 sentences here after testing — e.g. did the plain prompt guess or refuse? Did RAG correctly say "I cannot find this in the document" for anything not actually present? Was the RAG answer more specific/accurate?)*
+The RAG-grounded answers were consistently short, precise, and matched the document's actual wording almost verbatim — the same question asked twice returned the same answer both times. The plain prompt answers, by contrast, were longer and generally accurate about the underlying concepts (RAG, embeddings, AI automation are well-known topics the model already knows), but they were **not actually sourced from the document** — they varied in structure between repeat runs and, in the "AI automation" case, presented a generic 5-step framework instead of the document's specific answer (n8n + APIs + LLMs). This is the core value of RAG in practice: for well-known concepts a plain prompt can sound convincing without ever having read your document, which is risky for anything document-specific (a company's actual process, a specific number, a specific policy) — RAG guarantees the answer is traceable back to the source content instead of the model's general training knowledge.
 
 ---
 
